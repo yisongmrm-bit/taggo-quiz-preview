@@ -817,10 +817,35 @@ function mountAtlas(root, opts = {}) {
   const rawCoord = opts.coordinate || { x: -60, y: -40 };
   // 渲染层 clamp：极值答卷（如全①/全②）坐标落在 ±150 边界，收缩到 ±138 避免点位贴边被裁
   const CLAMP = 138;
-  const myCoord = {
+  let myCoord = {
     x: Math.max(-CLAMP, Math.min(CLAMP, rawCoord.x)),
     y: Math.max(-CLAMP, Math.min(CLAMP, rawCoord.y)),
   };
+  // 与代表人物避让：名人坐标是内容本体不动，「你」做最小位移推开。
+  // 规则：距任一名人 < MIN_GAP 时沿连线推到 MIN_GAP（完全重合向右推）；迭代3轮；
+  // 推完钳回边界且锁死本象限（避让绝不把你推过轴线）。
+  {
+    const MIN_GAP = 20;
+    const all = Object.values(FIGURES).flat();
+    const sx0 = Math.sign(myCoord.x) || 1, sy0 = Math.sign(myCoord.y) || 1;
+    for (let iter = 0; iter < 3; iter++) {
+      let moved = false;
+      for (const f of all) {
+        const dx = myCoord.x - f.x, dy = myCoord.y - f.y;
+        const d = Math.hypot(dx, dy);
+        if (d < MIN_GAP) {
+          const ux = d > 0.01 ? dx / d : 1, uy = d > 0.01 ? dy / d : 0;
+          myCoord = { x: f.x + ux * MIN_GAP, y: f.y + uy * MIN_GAP };
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
+    myCoord.x = Math.max(-CLAMP, Math.min(CLAMP, myCoord.x));
+    myCoord.y = Math.max(-CLAMP, Math.min(CLAMP, myCoord.y));
+    if (Math.sign(myCoord.x) !== sx0) myCoord.x = sx0 * 4;   // 象限锁
+    if (Math.sign(myCoord.y) !== sy0) myCoord.y = sy0 * 4;
+  }
   const counts = opts.counts || { tower: 54, court: 38, forge: 46, harbor: 50 };
 
   root.innerHTML = '';
