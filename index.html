@@ -1494,6 +1494,7 @@ function mountAtlas(root, opts = {}) {
 
       let rdown = false, rsx = 0, rsy = 0, rdx = 0, rhoriz = null, topCard = null;
       stack.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse') return;   // 触屏走专用 touch 监听（可 preventDefault 抢回手势）
         topCard = cards[idx];
         if (!topCard) return;
         rdown = true; rhoriz = null; rdx = 0; rsx = e.clientX; rsy = e.clientY;
@@ -1517,6 +1518,38 @@ function mountAtlas(root, opts = {}) {
       };
       stack.addEventListener('pointerup', rup);
       stack.addEventListener('pointercancel', rup);
+
+      // ── 真机触屏：非被动 touch 监听 + 轴向锁定 ──
+      // 页2-4 内容可纵向滚，pointer 事件一旦被滚动接管就收 pointercancel、横划全废；
+      // 这里横划意图一确立就 preventDefault，把手势从滚动手里抢回来；纵划则不拦、原生滚动照常。
+      let tId = null, tsx = 0, tsy = 0, tdx = 0, thoriz = null, tCard = null;
+      stack.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        tCard = cards[idx];
+        if (!tCard) return;
+        const t = e.touches[0];
+        tId = t.identifier; tsx = t.clientX; tsy = t.clientY; tdx = 0; thoriz = null;
+        tCard.classList.remove('anim');
+      }, { passive: true });
+      stack.addEventListener('touchmove', (e) => {
+        if (tId === null || !tCard) return;
+        const t = [...e.touches].find(x => x.identifier === tId);
+        if (!t) return;
+        tdx = t.clientX - tsx; const dy = t.clientY - tsy;
+        if (thoriz === null && (Math.abs(tdx) > 7 || Math.abs(dy) > 7)) thoriz = Math.abs(tdx) > Math.abs(dy);
+        if (!thoriz) return;
+        if (e.cancelable) e.preventDefault();
+        tCard.style.transform = `translateX(${tdx}px) rotate(${(tdx * 0.045).toFixed(2)}deg)`;
+      }, { passive: false });
+      const tEnd = () => {
+        if (tId === null) return; tId = null;
+        if (thoriz && tdx < -64 && idx < cards.length - 1) { idx++; layout(); }
+        else if (thoriz && tdx > 64 && idx > 0) { idx--; layout(); }
+        else layout();
+        tdx = 0; thoriz = null; tCard = null;
+      };
+      stack.addEventListener('touchend', tEnd);
+      stack.addEventListener('touchcancel', tEnd);
       if (DEV) document.getElementById('bk').onclick = () => { state.phase = 'start'; render(); };
       document.getElementById('atlas').onclick = () => { state.phase = 'atlas'; render(); };
       // 结算点亮动画：胜出两枚从当前分数高度灌到满格
