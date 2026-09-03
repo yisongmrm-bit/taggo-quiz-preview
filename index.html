@@ -225,7 +225,7 @@ html, body {
     /* ── 开始页 ─────────────────────────────────────────────────────── */
     .hero { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 30px; }
     .hero .brand { font-size: 15px; letter-spacing: 3px; color: var(--ink-dim); font-weight: 800; }
-    .hero h1 { font-size: 33px; line-height: 1.4; margin: 14px 0 0; font-weight: 800; font-style: italic; }
+    .hero h1 { font-size: 33px; line-height: 1.4; margin: 14px 0 0; font-weight: 800; }
     .hero .hl { color: var(--blue); }
     .hero .sub { color: var(--ink-dim); font-size: 15px; line-height: 2; margin-top: 18px; }
     .cta { padding: 0 20px 30px; flex: none; }
@@ -251,20 +251,28 @@ html, body {
     .card.anim { transition: transform .26s cubic-bezier(.2,.8,.2,1), opacity .24s; }
     .card.enter { animation: cardIn .3s cubic-bezier(.2,.8,.2,1); }
     @keyframes cardIn { from { transform: translateY(14px) scale(.96); opacity: .4; } to { transform: none; opacity: 1; } }
-    .q-text { margin: 4px 0 0; font-size: 25px; line-height: 1.55; font-weight: 800; font-style: italic;
+    .q-text { margin: 4px 0 0; font-size: 25px; line-height: 1.55; font-weight: 800;
       text-shadow: 0 2px 10px rgba(0,0,0,.4); }
     .q-text .no { margin-right: 2px; }
     .q-tip { margin-top: 18px; color: var(--ink-faint); font-size: 13px; }
-    .choices { margin-top: auto; display: flex; gap: 10px; padding: 0 2px; }
+    .choices { margin-top: auto; display: flex; gap: 20px; padding: 0 2px; }
+    /* 按钮本体不倾斜——外端 border-radius 是正圆半圆；中缝斜边由伪元素补出，
+       圆角不会再被 skew 拉成椭圆（悦生 2026-09-02 要求） */
     .choice {
       flex: 1; border: 0; cursor: pointer; color: #fff; font-size: 16px; font-weight: 600;
       padding: 15px 6px; background: linear-gradient(180deg, #5585F8, #3E6EEF);
-      transform: skewX(-11deg); border-radius: 16px; transition: filter .15s, transform .15s;
+      position: relative; transition: filter .15s, transform .15s;
     }
-    .choice:first-child { border-radius: 999px 16px 16px 999px; }
-    .choice:last-child { border-radius: 16px 999px 999px 16px; }
-    .choice > span { display: inline-block; transform: skewX(11deg); }
-    .choice.hot { filter: brightness(1.25); transform: skewX(-11deg) scale(1.04); }
+    .choice:first-child { border-radius: 999px 0 0 999px; }
+    .choice:last-child { border-radius: 0 999px 999px 0; }
+    .choice::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 18px;
+      background: inherit; transform: skewX(-11deg);
+    }
+    .choice:first-child::after { right: -8px; border-radius: 0 3px 3px 0; }
+    .choice:last-child::after { left: -8px; border-radius: 3px 0 0 3px; }
+    .choice > span { position: relative; z-index: 1; display: inline-block; }
+    .choice.hot { filter: brightness(1.25); transform: scale(1.04); }
     .progress { padding: 14px 18px calc(16px + env(safe-area-inset-bottom)); flex: none; }
     .bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.13); overflow: hidden; }
     .bar-fill { height: 100%; background: var(--blue); border-radius: 3px; transition: width .35s; }
@@ -717,7 +725,7 @@ const CTA = {
   androidIntent: "taggo://",    // Android 唤起（如需 intent:// 格式在此替换）
   iosUniversalLink: "https://taggo-api.taggo.top/Taggo",  // Universal Link / 官网落地页
 
-  qqGroup: "123456789",         // [SLOT] 社区群号占位，待悦生给正式群号（及群二维码图）
+  qqGroup: "1109703570",        // 社区 QQ 群（悦生 2026-09-02 定）；[SLOT] 群二维码图仍待
 };
 
 /** 按 UA 挑安卓商店；认不出品牌就落官网落地页 */
@@ -1229,7 +1237,7 @@ function mountAtlas(root, opts = {}) {
     </div>
     <div class="cta-card">
       <div class="cta-hd">或加入社区群</div>
-      <div class="cta-sub">QQ 群：<b>${CTA.qqGroup}</b>　<span class="cta-slot">[SLOT: 正式群号 + 群二维码]</span></div>
+      <div class="cta-sub">QQ 群：<b>${CTA.qqGroup}</b></div>
       <button type="button" class="cta-btn ghost" id="ctaCopyGroup">复制群号</button>
     </div>`;
   root.appendChild(cta);
